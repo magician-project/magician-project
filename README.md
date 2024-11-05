@@ -22,6 +22,7 @@ In the upcoming months we can plan on making this documentation private by findi
 
 code_of_conduct.md
 framework.md
+materials.md
 ```
 
 ## Building the documentation
