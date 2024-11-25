@@ -71,3 +71,53 @@ For a simple tutorial on how to create custom `msg` and `srv` files, please refe
 
 The documentation of these messages/services is provided in the [`magician_msgs`](https://github.com/magician-project/magician_msgs) repository, under the `docs` folder.
 The documentation is also be available as an [online website here](https://magician-project.github.io/magician_msgs/).
+
+## Functional Design
+
+In this section we provide a more in depth description of the proposed software architecture that we plan on using.
+
+```{mermaid}
+mindmap
+    root((Station Manager))
+        ((Estimation))
+            Vision system
+            Tactile system
+            Positioning system
+        ((Human Sensing))
+        ((Planner))
+            Task planners
+            Motion planners
+            Low-level controler configuration
+        Low-Level Controller xBot2
+```
+
+A common aspect shared by all *managers* is that they don't perform the intended action by themselves, but rather orchestrate the algorithmic execution by using ROS2 lifecycle nodes. 
+I.e., they are responsible to activate/deactivate different submodules, based on the status of the robotic cell.
+
+
+### Station Manager
+
+It implements the finite state machine to orchestrate the overall behavior of the cell.
+It shall fill the gap between the ROS2 domain and the _external world_ (e.g. GUIs for the user that might specify some parameters, or the existing automated line). 
+
+Here we provide the minimal interface connection with the XBot2 platform that provides the low-level control of the robot.
+
+### Planners
+The planner module is responsible to load, configure, and activate the different types of planning algorithm, like:
+
+- ergodic control;
+- orienteering problem;
+- DMP motion execution;
+- etc...
+
+### Estimation
+The estimation module must manage the sensing systems, and shall provide algorithms that put together such data in a data format that can be used by motion algorithm.
+
+### Human sensing
+This module takes data of the environment and is responsible to produce data describing the human involvement with the robotic cell.
+This is the only module that can directly communicate with the low-level control for triggering reactive strategies for human collision avoidance.
+
+
+## API Definition
+
+
