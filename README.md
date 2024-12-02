@@ -39,9 +39,12 @@ Install the required python packages:
 pip install -r requirements.txt
 ```
 
+Install [plantuml](https://plantuml.com/download); in particular, choose a *compiled jar* file, and place it at the root of this project with the name `plantuml.jar`
+
 To build the documentation properly, there's a Makefile that can be used to build the documentation:
 ```bash
 make
 ```
 
 The entry point of the website can be found under `html/index.html`.
+

@@ -120,4 +120,34 @@ This is the only module that can directly communicate with the low-level control
 
 ## API Definition
 
+### Topics
+- `/camera/result` (type: `msg/camera/Scan.msg`): provides the prediction on of the defects from a single image;
+- `/tactile/result` (type **`TBD`**);
+- `/car/current_estimation_state` (type `msg/CarEstimate.msg`): provides the current inspection state of the car body (e.g. the map of the found defects, area that has been covered, variance of the estimation...);
+- `/car/position` (type: `geometry_msgs/PoseStamped.msg`): position of the car body w.r.t. a common reference frame;
+- `/robot/state` (type: `msg/RobotState.msg`): provides the current working state of the robot (e.g. sensing, reworking, standstill...);
+- `/robot/position` (type: `geometry_msgs/PoseStamped.msg`): position of the robot base w.r.t. a common reference frame;
+- `/robot/pos_setpoint` (type: `geometry_msgs/Pose.msg`): currently desired end-effector position;
+- `/robot/vel_setpoint` (type: `geometry_msgs/Twist.msg`): currently desired end-effector velocity;
+- `/robot/acc_setpoint` (type: `geometry_msgs/Twist.msg`): currently desired end-effector acceleration;
+- `/human/predicted_motion` (type **`TBD`**);
+
+
+### Services
+
+- `/car/get_defects` (type `srv/GetDefects.srv`): retrieves the currently sensed defects;
+- `/robot/set_planning_algorithm` (type **`TBD`**);
+- `/robot/task_planning/orienteering` (type `srv/task_planning/Orienteering.srv`): solves the deterministic orienteering problem;
+- `/robot/task_planning/ptp_time_estimator` (type `srv/task_planning/PtpTimeEstimator.srv`): builds an estimate of the time required to carry out a point-to-point motion;
+- `/robot/homing` (type `std_msgs/Trigger.msg`);
+- `/robot/stop` (type `std_msgs/Trigger.msg`);
+- `/robot/safety_stop` (type `std_msgs/Trigger.msg`);
+
+
+```{plantuml}
+@startuml
+Class01 <|-- Class02
+Class03 --* Class04
+@enduml
+```
 
