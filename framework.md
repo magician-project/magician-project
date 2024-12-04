@@ -144,10 +144,122 @@ This is the only module that can directly communicate with the low-level control
 - `/robot/safety_stop` (type `std_msgs/Trigger.msg`);
 
 
+
+### Ownership diagram
+The following describes the ownership hierarchy of the different components.
+For example, `A -> B` it means that `A` is responsible to make sure that `B` is functioning as expected, and otherwise deal with the problem.
+
 ```{plantuml}
+:width: 800px
 @startuml
-Class01 <|-- Class02
-Class03 --* Class04
+[UserInterface] <-down- [TaskManager]
+[TaskManager] --> [EstimationAlgorithm]
+[TaskManager] --> [LowLevelController]
+[TaskManager] --> [MotionPlanning]
+[TaskManager] --> [HumanSensing]
+
+[EstimationAlgorithm] --> [VisionSystem]
+[EstimationAlgorithm] --> [TactileSystem]
+[EstimationAlgorithm] --> [LocalisationSystem]
+@enduml
+```
+
+
+### Nodes interfaces
+
+Each interface exposes:
+
+- the minimal set of **inputs** that are required by the given node to work (red squares);
+- the minimal set of **output topics** that the node must export (green circles);
+- the minimal set of **services** that the node must serve as server (blue triangles).
+
+These are the interfaces associated to the sensing systems, the car surface estimator, and the human sensing:
+```{plantuml}
+:width: 800px
+@startuml
+package Sensing {
+  interface CameraNode {
+    - {abstract}  camera stream
+    .. out topics ..
+    + /camera/result: camera/Result.msg
+    .. services ..
+    ~ camera/set_rate: TBD
+  }
+  
+  interface TactileNode {
+    - {abstract}  tactile data stream
+    .. out topics ..
+    + /tactile/result: TBD
+  }
+  
+  interface LocalisationNode {
+    - {abstract}  object to track
+    - {abstract}  data source
+    .. out topics ..
+    + /<obj>/position: geometry_msgs/PoseStamped.msg
+  }
+  
+  interface EstimationAlgorithm {
+    .. in topics ..
+    - /camera/result
+    - /tactile/result
+    - /robot/position
+    - /car/position
+    .. out topics ..
+    + /estimator/state
+    .. services ..
+    ~ /estimator/get_defects: estimator/GetDefects.srv
+  }
+  
+  interface HumanSensing {
+    .. out topics ..
+    + /humans/humans_state: TBD
+    .. service ..
+    ~ /humans/safety_stop: std_msgs/Trigger.msg
+  }
+
+}
+@enduml
+```
+
+These are the interfaces for the algorithms that are required to plan the motion of the robot:
+```{plantuml}
+:width: 800px
+@startuml
+package Planning {
+  interface MotionPlanner {
+    .. in topics ..
+    - /robot/state: robot/RobotState.msg
+    .. out topics ..
+    + /robot/running_planner: std_msgs/String.msg
+    .. services ..
+    ~ /robot/set_operating_mode: robot/RobotMode.srv
+  }
+
+  interface TravelTimeEstimatorNode {
+    .. services ..
+    ~ /robot/time_estimator/<algorithm>: task_planning/TimeEstimate.srv
+  }
+  
+  interface OrienteeringSolverNode {
+    .. required services ..
+    - /robot/time_estimator/<algorithm>: task_planning/TimeEstimate.srv
+    .. services ..
+    ~ /robot/orienteering/<algorithm>: task_planning/Orienteering.srv
+  }
+  
+}
+@enduml
+```
+
+```{startuml}
+@startuml
+interface LowLevelController {
+  .. in topics ..
+  - /robot/desired_position: geometry_msgs/PoseStamped.msg
+  - /robot/desired_velocity: geometry_msgs/TwistStamped.msg
+  - /robot/desired_acceleration: geometry_msgs/TwistStamped.msg
+}
 @enduml
 ```
 
