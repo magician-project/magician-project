@@ -165,6 +165,40 @@ For example, `A -> B` it means that `A` is responsible to make sure that `B` is 
 ```
 
 
+In particular, this is an overview on the hierarchy management. 
+The `TaskManager` is responsible to configure and activate (based on the [ROS2 lifecycle node protocol](https://design.ros2.org/articles/node_lifecycle.html)) the `EstimationAlgorithm` that, in turn, to be configured/activated, must ensure that the subsystems are working.
+```{plantuml}
+:width: 800px
+@startuml
+
+actor TaskManager
+participant EstimationAlgorithm
+entity CameraSystem
+entity TactileSystem
+entity LocalisationSystem
+
+TaskManager -> EstimationAlgorithm: on_configure()
+EstimationAlgorithm ->  CameraSystem: on_configure()
+EstimationAlgorithm <-- CameraSystem
+EstimationAlgorithm ->  TactileSystem: on_configure()
+EstimationAlgorithm <-- TactileSystem
+EstimationAlgorithm ->  LocalisationSystem: on_configure()
+EstimationAlgorithm <-- LocalisationSystem
+TaskManager <-- EstimationAlgorithm
+
+TaskManager -> EstimationAlgorithm: on_activate()
+EstimationAlgorithm ->  CameraSystem: on_activate()
+EstimationAlgorithm <-- CameraSystem
+EstimationAlgorithm ->  TactileSystem: on_activate()
+EstimationAlgorithm <-- TactileSystem
+EstimationAlgorithm ->  LocalisationSystem: on_activate()
+EstimationAlgorithm <-- LocalisationSystem
+
+TaskManager <-- EstimationAlgorithm
+@enduml
+```
+
+
 ### Nodes interfaces
 
 Each interface exposes:
@@ -259,6 +293,24 @@ interface LowLevelController {
   - /robot/desired_position: geometry_msgs/PoseStamped.msg
   - /robot/desired_velocity: geometry_msgs/TwistStamped.msg
   - /robot/desired_acceleration: geometry_msgs/TwistStamped.msg
+}
+@enduml
+```
+
+### Components interaction
+```{plantuml}
+:width: 800px
+@startuml
+CameraSystem .up.> [EstimationAlgorithm]: processed results
+TactileSystem .up.> [EstimationAlgorithm]: processed results
+LocalisationSystem .up.> [EstimationAlgorithm]: processed results
+
+[EstimationAlgorithm] ..> [MotionPlanner]: defect map
+[EstimationAlgorithm] -> [TaskManager]
+[MotionPlanner] -> [TaskManager]
+[TaskManager] ..> [EstimationAlgorithm]: set sensor to use
+[TaskManager] ..> [MotionPlanner]: set operating mode
+
 }
 @enduml
 ```
