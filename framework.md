@@ -60,25 +60,14 @@ For this reason, a database will be needed to store all the data.
 All these components will communicate through the [ROS2 Humble](https://index.ros.org/doc/ros2/) middleware.
 
 
-## Intra-component communication
+## Components Functional Design
 
-To properly separate all different services, we will heavily rely on the ROS2 middleware.
-For this reason, the best way to establish a communication protocol is by means of **custom topic** and **service messages**.
+In this section we provide a description of the proposed software architecture that we plan on using. 
 
-To this extent, it has been created the repository [`magician_msgs`](https://github.com/magician-project/magician_msgs).
-There, everyone can specify the expected input and output of each service/topic.
-For a simple tutorial on how to create custom `msg` and `srv` files, please refer to [the official tutorial](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Custom-ROS2-Interfaces.html) on the ROS2 documentation.
-
-The documentation of these messages/services is provided in the [`magician_msgs`](https://github.com/magician-project/magician_msgs) repository, under the `docs` folder.
-The documentation is also be available as an [online website here](https://magician-project.github.io/magician_msgs/).
-
-## Functional Design
-
-In this section we provide a more in depth description of the proposed software architecture that we plan on using.
-
+<!-- 
 ```{mermaid}
 mindmap
-    root((Station Manager))
+    root((Task Manager))
         ((Estimation))
             Vision system
             Tactile system
@@ -89,20 +78,40 @@ mindmap
             Motion planners
             Low-level controler configuration
         Low-Level Controller xBot2
+``` -->
+
+### Components interaction
+There are totally five *minimal* components that can accomplish the defect detection and removal task, that is: Task manager, motion planner, low-lvel controller, estimation algorithm, and human sensing algorithm. 
+
+A common aspect shared by all **managers** (Task manager and estimation algorithm in this case) is that they don't perform the intended action by themselves, but rather orchestrate the algorithmic execution by using ROS2 lifecycle nodes. 
+I.e., they are responsible to activate/deactivate different submodules, based on the status of the robotic cell. 
+
+```{plantuml}
+:width: 800px
+@startuml
+CameraSystem .up.> [EstimationAlgorithm]: processed results
+TactileSystem .up.> [EstimationAlgorithm]: processed results
+LocalisationSystem .up.> [EstimationAlgorithm]: processed results
+
+[EstimationAlgorithm] ..> [MotionPlanner]: defect map
+[EstimationAlgorithm] -> [TaskManager]
+[MotionPlanner] -> [TaskManager]
+[TaskManager] ..> [EstimationAlgorithm]: set sensor to use
+[TaskManager] ..> [MotionPlanner]: set operating mode
+
+}
+@enduml
 ```
 
-A common aspect shared by all *managers* is that they don't perform the intended action by themselves, but rather orchestrate the algorithmic execution by using ROS2 lifecycle nodes. 
-I.e., they are responsible to activate/deactivate different submodules, based on the status of the robotic cell.
+### Task Manager
 
-
-### Station Manager
-
-It implements the finite state machine to orchestrate the overall behavior of the cell.
+It orchestrates the overall behavior of the cell.
 It shall fill the gap between the ROS2 domain and the _external world_ (e.g. GUIs for the user that might specify some parameters, or the existing automated line). 
 
-Here we provide the minimal interface connection with the XBot2 platform that provides the low-level control of the robot.
+Here we provide the minimal interface connection with other compenents.
+<!-- the XBot2 platform that provides the low-level control of the robot. -->
 
-### Planners
+### Motion Planner
 The planner module is responsible to load, configure, and activate the different types of planning algorithm, like:
 
 - ergodic control;
@@ -110,42 +119,23 @@ The planner module is responsible to load, configure, and activate the different
 - DMP motion execution;
 - etc...
 
-### Estimation
-The estimation module must manage the sensing systems, and shall provide algorithms that put together such data in a data format that can be used by motion algorithm.
+### Low level Controller
+The low level cotnroller is responsible to load, configure, and activate all the different types of controller, like:
+
+- Impedance control;
+- Admittance control;
+- Position control;
+- etc...
+
+### Estimation Algorithm
+The estimation module must **manage** the defect sensing systems, and shall provide algorithms that put together such data in a data format that can be used by motion algorithm.
 
 ### Human sensing
 This module takes data of the environment and is responsible to produce data describing the human involvement with the robotic cell.
 This is the only module that can directly communicate with the low-level control for triggering reactive strategies for human collision avoidance.
 
+## Ownership diagram
 
-## API Definition
-
-### Topics
-- `/camera/result` (type: `msg/camera/Scan.msg`): provides the prediction on of the defects from a single image;
-- `/tactile/result` (type **`TBD`**);
-- `/car/current_estimation_state` (type `msg/CarEstimate.msg`): provides the current inspection state of the car body (e.g. the map of the found defects, area that has been covered, variance of the estimation...);
-- `/car/position` (type: `geometry_msgs/PoseStamped.msg`): position of the car body w.r.t. a common reference frame;
-- `/robot/state` (type: `msg/RobotState.msg`): provides the current working state of the robot (e.g. sensing, reworking, standstill...);
-- `/robot/position` (type: `geometry_msgs/PoseStamped.msg`): position of the robot base w.r.t. a common reference frame;
-- `/robot/pos_setpoint` (type: `geometry_msgs/Pose.msg`): currently desired end-effector position;
-- `/robot/vel_setpoint` (type: `geometry_msgs/Twist.msg`): currently desired end-effector velocity;
-- `/robot/acc_setpoint` (type: `geometry_msgs/Twist.msg`): currently desired end-effector acceleration;
-- `/human/predicted_motion` (type **`TBD`**);
-
-
-### Services
-
-- `/car/get_defects` (type `srv/GetDefects.srv`): retrieves the currently sensed defects;
-- `/robot/set_planning_algorithm` (type **`TBD`**);
-- `/robot/task_planning/orienteering` (type `srv/task_planning/Orienteering.srv`): solves the deterministic orienteering problem;
-- `/robot/task_planning/ptp_time_estimator` (type `srv/task_planning/PtpTimeEstimator.srv`): builds an estimate of the time required to carry out a point-to-point motion;
-- `/robot/homing` (type `std_msgs/Trigger.msg`);
-- `/robot/stop` (type `std_msgs/Trigger.msg`);
-- `/robot/safety_stop` (type `std_msgs/Trigger.msg`);
-
-
-
-### Ownership diagram
 The following describes the ownership hierarchy of the different components.
 For example, `A -> B` it means that `A` is responsible to make sure that `B` is functioning as expected, and otherwise deal with the problem.
 
@@ -199,9 +189,9 @@ TaskManager <-- EstimationAlgorithm
 ```
 
 
-### Nodes interfaces
+## Nodes interfaces
 
-Each interface exposes:
+Each ROS2 Node interface exposes:
 
 - the minimal set of **inputs** that are required by the given node to work (red squares);
 - the minimal set of **output topics** that the node must export (green circles);
@@ -297,21 +287,42 @@ interface LowLevelController {
 @enduml
 ```
 
-### Components interaction
-```{plantuml}
-:width: 800px
-@startuml
-CameraSystem .up.> [EstimationAlgorithm]: processed results
-TactileSystem .up.> [EstimationAlgorithm]: processed results
-LocalisationSystem .up.> [EstimationAlgorithm]: processed results
 
-[EstimationAlgorithm] ..> [MotionPlanner]: defect map
-[EstimationAlgorithm] -> [TaskManager]
-[MotionPlanner] -> [TaskManager]
-[TaskManager] ..> [EstimationAlgorithm]: set sensor to use
-[TaskManager] ..> [MotionPlanner]: set operating mode
 
-}
-@enduml
-```
 
+### Intra-component communication / API Definition
+
+To properly separate all different services, we will heavily rely on the ROS2 middleware.
+For this reason, the best way to establish a communication protocol is by means of **custom topic** and **service messages**.
+
+
+#### Topics
+- `/camera/result` (type: `msg/camera/Scan.msg`): provides the prediction on of the defects from a single image;
+- `/tactile/result` (type **`TBD`**);
+- `/car/current_estimation_state` (type `msg/CarEstimate.msg`): provides the current inspection state of the car body (e.g. the map of the found defects, area that has been covered, variance of the estimation...);
+- `/car/position` (type: `geometry_msgs/PoseStamped.msg`): position of the car body w.r.t. a common reference frame;
+- `/robot/state` (type: `msg/RobotState.msg`): provides the current working state of the robot (e.g. sensing, reworking, standstill...);
+- `/robot/position` (type: `geometry_msgs/PoseStamped.msg`): position of the robot base w.r.t. a common reference frame;
+- `/robot/pos_setpoint` (type: `geometry_msgs/Pose.msg`): currently desired end-effector position;
+- `/robot/vel_setpoint` (type: `geometry_msgs/Twist.msg`): currently desired end-effector velocity;
+- `/robot/acc_setpoint` (type: `geometry_msgs/Twist.msg`): currently desired end-effector acceleration;
+- `/human/predicted_motion` (type **`TBD`**);
+
+
+#### Services
+
+- `/car/get_defects` (type `srv/GetDefects.srv`): retrieves the currently sensed defects;
+- `/robot/set_planning_algorithm` (type **`TBD`**);
+- `/robot/task_planning/orienteering` (type `srv/task_planning/Orienteering.srv`): solves the deterministic orienteering problem;
+- `/robot/task_planning/ptp_time_estimator` (type `srv/task_planning/PtpTimeEstimator.srv`): builds an estimate of the time required to carry out a point-to-point motion;
+- `/robot/homing` (type `std_msgs/Trigger.msg`);
+- `/robot/stop` (type `std_msgs/Trigger.msg`);
+- `/robot/safety_stop` (type `std_msgs/Trigger.msg`);
+
+#### magician_msgs
+To this extent, it has been created the repository [`magician_msgs`](https://github.com/magician-project/magician_msgs).
+There, everyone can specify the expected input and output of each service/topic.
+For a simple tutorial on how to create custom `msg` and `srv` files, please refer to [the official tutorial](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Custom-ROS2-Interfaces.html) on the ROS2 documentation.
+
+The documentation of these messages/services is provided in the [`magician_msgs`](https://github.com/magician-project/magician_msgs) repository, under the `docs` folder.
+The documentation is also be available as an [online website here](https://magician-project.github.io/magician_msgs/).
