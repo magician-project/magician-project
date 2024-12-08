@@ -25,7 +25,7 @@ jobs:
       - name: Installs
         run: |
           sudo apt-get update
-          sudo apt-get install -y git wget default-jre graphviz
+          sudo apt-get install -y git wget default-jre graphviz python3 python3-pip
 
       - name: Set up Python
         uses: actions/setup-python@v4

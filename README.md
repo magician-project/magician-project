@@ -30,15 +30,18 @@ materials.md
 The website version of the documentation is built with [sphinx](https://www.sphinx-doc.org/en/master/).
 To create the html version of the documentation:
 
-1. Install the system dependencies. 
-   The build process relies on `wget` to fetch external libraries that are `java` based, thus the Java runtime environment is required.
-   On Ubuntu-based system it is simply required to call:
+1. Install the system dependencies. Dependencies are:
+   - `wget`: to fetch external pre-compiled libraries;
+   - a Java runtime environment to run external tools;
+   - `graphviz`, to draw the UML diagrams;
+   - `python3` and `pip` to install the required python packages.
+   On Ubuntu-based systems, dependencies can be installed with:
    ``` bash
-   sudo apt-get update && sudo apt-get install -y wget default-jre
+   sudo apt-get update && sudo apt-get install -y wget default-jre graphviz python3 python3-pip
    ```
 1. install the required python packages:
    ```bash
-   pip install -r requirements.ktxt
+   pip install -r requirements.txt
    ```
 1. use the provided `Makefile` to build the documentation:
    ```bash
