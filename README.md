@@ -27,24 +27,32 @@ framework.md
 ## Building the documentation
 
 The website version of the documentation is built with [sphinx](https://www.sphinx-doc.org/en/master/).
+To create the html version of the documentation:
 
-**Optional step**: initialise a python virtual environment:
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
+1. Install the system dependencies. 
+   The build process relies on `wget` to fetch external libraries that are `java` based, thus the Java runtime environment is required.
+   On Ubuntu-based system it is simply required to call:
+   ``` bash
+   sudo apt-get update && sudo apt-get install -y wget default-jre
+   ```
+1. install the required python packages:
+   ```bash
+   pip install -r requirements.ktxt
+   ```
+1. use the provided `Makefile` to build the documentation:
+   ```bash
+   make
+   ```
 
-Install the required python packages:
-```bash
-pip install -r requirements.txt
-```
-
-Install [plantuml](https://plantuml.com/download); in particular, choose a *compiled jar* file, and place it at the root of this project with the name `plantuml.jar`
-
-To build the documentation properly, there's a Makefile that can be used to build the documentation:
-```bash
-make
-```
-
+During the call to make, the [plantuml](https://plantuml.com/download) binary is downloaded from the official website; this is a required tool to render the UML diagrams.
+ 
 The entry point of the website can be found under `html/index.html`.
 
+### Make targets
+
+- `make docs`: default target; build the website version of the documentation at `html/`;
+- `make html`: same as `make docs`;
+- `make clean`: remove the built files;
+- `make view`: uses the default browser to open the built documentation;
+- `make venv`: creates a python virtual environment and installs all the required packages. 
+   If the virtual environment is present, it is always used to build the documentation.
