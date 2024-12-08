@@ -56,6 +56,9 @@ The entry point of the website can be found under `html/index.html`.
 
 - `make docs`: default target; build the website version of the documentation at `html/`;
 - `make html`: same as `make docs`;
+- `make pdf`: creates the PDF version of the documentation (experimental support).
+   To work, LaTeX must be installed on the local device. 
+   Other dependencies could be required to properly build the PDF documentation, but are not yet listed due to lack of thorough testing;
 - `make clean`: remove the built files;
 - `make view`: uses the default browser to open the built documentation;
 - `make venv`: creates a python virtual environment and installs all the required packages. 

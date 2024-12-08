@@ -4,4 +4,7 @@ html/
 venv/
 env/
 
+pdf-build/
+magician.pdf
+
 plantuml.jar
