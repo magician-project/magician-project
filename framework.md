@@ -6,7 +6,7 @@ As proposed by prof. Luigi Palopoli in the integration meeting (October the 15th
 
 ```{mermaid}
 graph TD
-    ROS1[ROS2] --> XBOT[XBot2] 
+    ROS1[ROS2] --> XBOT[XBot2]
     RT1[RT application] -->XBOT
     XBOT --> LNX1[Linux + Xenomai]
 
@@ -39,9 +39,9 @@ graph TD
         RT2
         LNX2
     end
-    
+
     subgraph "Robot Control"
-        ROS1 
+        ROS1
         XBOT
         RT1
         LNX1
@@ -51,10 +51,10 @@ graph TD
 The low-level control of the robot will be based on the RT framework developed by IIT, [XBot2](https://advrhumanoids.github.io/xbot2/master/index.html).
 To work, we will need surely a real-time patched Linux kernel, and maybe the [Xenomai](https://xenomai.org/) co-kernel for hard RT applications.
 
-Other soft-RT applications can (potentially) live in another machine. 
+Other soft-RT applications can (potentially) live in another machine.
 In this category falls all motion and task-planning algorithms, as well as all the estimation methods.
 
-We might also provide non-RT application for data monitoring, review, and post-processing. 
+We might also provide non-RT application for data monitoring, review, and post-processing.
 For this reason, a database will be needed to store all the data.
 
 All these components will communicate through the [ROS2 Humble](https://index.ros.org/doc/ros2/) middleware.
@@ -84,6 +84,7 @@ From a high level perspective, this is the main interaction between the componen
 CameraSystem .up.> [EstimationAlgorithm]: processed results
 TactileSystem .up.> [EstimationAlgorithm]: processed results
 LocalisationSystem .up.> [EstimationAlgorithm]: processed results
+WeldingSystem .up.> [EstimationAlgorithm]: processed results
 
 [EstimationAlgorithm] .up.> [MotionPlanner]: defect map
 [EstimationAlgorithm] -up-> [TaskManager]
@@ -100,7 +101,7 @@ LocalisationSystem .up.> [EstimationAlgorithm]: processed results
 ### Task Manager
 
 It orchestrates the overall behavior of the cell, and serves as entry-point for the main application (by hosting a finite state machine or behavior trees).
-It shall also fill the gap between the **ROS2 domain** and the **external world** (e.g. GUIs for the user that might specify some parameters, or the existing automated line). 
+It shall also fill the gap between the **ROS2 domain** and the **external world** (e.g. GUIs for the user that might specify some parameters, or the existing automated line).
 
 ### Motion Planner
 The planner module is responsible to load, configure, and activate the different types of planning algorithm and modes; as of writing, we envision:
@@ -119,7 +120,8 @@ This module embeds (and orchestrate) different functionalities:
 - `TactileSystem`: have a **tactile system** that can sense the car body and provide data on the defects using haptic feedback;
 - `VisionSystem`: have a **vision system** that can sense the car body and provide data on the defects using image processing;
 - `LocalisationSystem`: have a **localisation system** that can provide the positioning of different components (such as the robot, or the car body) w.r.t. a common reference frame;
-- provide **algorithms** that put together all these data in a coherent way that can be used by the motion planner.
+- `WeldingSystem`: component that interfaces with the production floor, retrieve the status of the weld status, and provide some *conversions* for critical areas provided by the welder.
+- provides **algorithms** that put together all these data in a coherent way that can be used by the motion planner.
 
 ### Human sensing
 This module takes data of the environment and is responsible to produce data describing the human involvement with the robotic cell.
@@ -127,8 +129,8 @@ This is the only module that can directly communicate with the low-level control
 
 ## Ownership diagram
 
-At runtime, we expect that all aforementioned subcomponents (except `TaskManager`) will be [managed ROS2 nodes](http://design.ros2.org/articles/node_lifecycle.html). 
-According to such standard, each node internally have a finite state machine of 5 states: `unloaded`, `unconfigured`, `inactive`, `active`, `finalized`. 
+At runtime, we expect that all aforementioned subcomponents (except `TaskManager`) will be [managed ROS2 nodes](http://design.ros2.org/articles/node_lifecycle.html).
+According to such standard, each node internally have a finite state machine of 5 states: `unloaded`, `unconfigured`, `inactive`, `active`, `finalized`.
 The following diagram, extracted from the ROS2 design documentation, shows the lifecycle of a node:
 
 ![](http://design.ros2.org/img/node_lifecycle/life_cycle_sm.png)
@@ -148,6 +150,7 @@ For example, `A -> B` means that `A` is responsible to make sure that `B` is fun
 [EstimationAlgorithm] --> [VisionSystem]
 [EstimationAlgorithm] --> [TactileSystem]
 [EstimationAlgorithm] --> [LocalisationSystem]
+[EstimationAlgorithm] --> [WeldingSystem]
 @enduml
 ```
 In practice, according to the ROS2 lifecycle node protocol, the following is a sample interaction between the `TaskManager` and the `EstimationAlgorithm` to activate the sensing system (and the required subsystems):
@@ -203,20 +206,25 @@ package Sensing {
     .. services ..
     ~ camera/set_rate: TBD
   }
-  
+
   interface TactileNode {
     - {abstract}  tactile data stream
     .. out topics ..
     + /tactile/result: TBD
   }
-  
+
   interface LocalisationNode {
     - {abstract}  object to track
     - {abstract}  data source
     .. out topics ..
     + /<obj>/position: geometry_msgs/PoseStamped.msg
   }
-  
+
+  interface WelderNode {
+    .. input ..
+    .. out topics ..
+  }
+
   interface EstimationAlgorithm {
     .. in topics ..
     - /camera/result
@@ -228,7 +236,7 @@ package Sensing {
     .. services ..
     ~ /estimator/get_defects: estimator/GetDefects.srv
   }
-  
+
   interface HumanSensing {
     .. out topics ..
     + /humans/humans_state: TBD
@@ -258,14 +266,14 @@ package Planning {
     .. services ..
     ~ /robot/time_estimator/<algorithm>: task_planning/TimeEstimate.srv
   }
-  
+
   interface OrienteeringSolverNode {
     .. required services ..
     - /robot/time_estimator/<algorithm>: task_planning/TimeEstimate.srv
     .. services ..
     ~ /robot/orienteering/<algorithm>: task_planning/Orienteering.srv
   }
-  
+
 }
 @enduml
 ```
