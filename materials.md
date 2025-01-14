@@ -20,3 +20,32 @@ Last update: November 2024.
 
 
 In addition to this material, it is required to have breadboards, cables and resistor to wire all the setup.
+
+## Tactile Perception Module - IIT
+
+The following table contains all components for the first version of the tactile perception module developed by the IIT partner.
+
+Last update: November 2024.
+
+| Item | Description | Quantity | Links |
+| ---: | :---------- | :------- | ----- |
+| ATI Nano 17 | Force/Torque sensor | 1 | [link](https://www.ati-ia.com/company/contacts.aspx) * |
+| TP-Link TL-POE150S | Power Over Ethernet Injector | 1 |  [Amazon](https://amzn.eu/d/cIaFhj6) |
+| ADXL335 | 3-axis accelerometer | 1 | [link](https://mou.sr/3Oi0AHZ)|
+| Teensy 4.0 | | 1 | [link](https://www.pjrc.com/store/teensy40.html) |
+
+
+In addition to this material, it is required to have breadboards, cables and resistor to wire all the setup.
+
+**It is not possible to direct purchase an ATI sensor**.
+You will need to contact the ATI sales office, which will direct you to the appropriate reseller for your country. 
+Below, we provide the specifications of the purchased system and the required components, ordered by the Italian reseller, SCHUNK Intec S.r.l.:
+
+```
+FTN-NANO17-E-1.8-NETBA- DUAL SI-12-0.12/25-0.25:
+- 1 x Nano17 sensor
+- 1 x 1.8m cable between the sensor and the Net BA box
+- 1 x Net BA box
+- 1 x Calibration SI-25-0.25 e
+- FTN-C-ES-RJ45-0.2 adapter
+```
