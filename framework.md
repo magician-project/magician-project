@@ -64,18 +64,20 @@ All these components will communicate through the [ROS2 Humble](https://index.ro
 
 ## Overview
 
-By looking at the problem from a broader perspective, we can identify 5 main components that serve different purposes:
+By exploiting ROS2 functionalities, the final _MAGICIAN technological stack_ will consist of a **distributed network of ROS2 nodes that work interactively**. 
+Still, we need to separate those node components in **packages** based on the node's semantic and functionality.
+For this reason, we identify the following areas:
 
-1. `EstimationAlgorithm`: deals with all the sensing and the perception of the system when inspecting the car body;
-1. `MotionPlanning`: responsible for the planning of the robot behavior, from the task level all the way down to position control;
-1. `LowLevelController`: the interface with the hardware that ensures the correct execution of the planned motion, and deals with the safety of the human-robot interaction and the interaction with the environment;
-1. `HumanSensing`: the module dealing with the human presence in the cell, comprising its sensing and motion prediction;
-1. `TaskManager`: the orchestrator of the whole system, that ensures the correct interaction between the above listed components.
+- `Estimation`: comprise all steps that, from the acquisition of the raw data, enable to retrieve a representation of the defect map of a single car.
+- `TaskPlanning`: comprises all task-level planning nodes;
+- `MotionPlanning`: comprises all motion-level planning utilities;
+- `Controller`: comprises all low-level control utilities to interact with the robot;
+- `HardwareInterface`: hardware abstraction layer;
+- `Human`: deals with the acquisition of the human pose and the consequent motion forecasting;
+- `ProcessAnalysis`, `ProcessOptimisation`, `ToolOptimisation`: contains, at different levels, all offline algorithms entitled to analyse the robot-provided data from the production floor in order to analyse and optimise the robot parameters, as well as to improve generalisation capabilities of the provided solution.
 
-These components are not strictly bound to a ROS2 node implementation, but rather to a logical separation of the functionalities that are required to accomplish the tasks of the robotic station.
-
-These entities shall not be responsible to carry out the intended action by themselves, but rather orchestrate the algorithmic execution of the functionalities by using ROS2 lifecycle nodes.
-
+Within each package we expect that multiple nodes are running.
+It also true that a single node implementation might span over multiple packages; an example is the XBot2 hardware interface that will most probably expose the `Controller` interfaces with a strict connection to the `HardwareInterface`.
 From a high level perspective, this is the main interaction between the components:
 
 ```{plantuml}
@@ -103,43 +105,40 @@ Database .left.> [ProcessAnalysis]
 @enduml
 ```
 
-### Task Manager
+## Packages
 
-It orchestrates the overall behavior of the cell, and serves as entry-point for the main application (by hosting a finite state machine or behavior trees).
-It shall also fill the gap between the **ROS2 domain** and the **external world** (e.g. GUIs for the user that might specify some parameters, or the existing automated line).
+To properly achieve the functionalities of a _package_, multiple nodes are actually required.
+Since the final architecture will consist of a distributed set of ROS2 nodes, we enforce in this document the **minimal set of requirements** that each node shall rely on to work, and the output that they will provide.
 
-### Motion Planner
-The planner module is responsible to load, configure, and activate the different types of planning algorithm and modes; as of writing, we envision:
+In the following you may find:
+- _interfaces_ (letter `I` within a purple circle): represent an abstract interface with no actual implementation;
+- _entities_ (letter `E` within a green circle): represent a concrete and unique implementation of a ROS2 node.
 
-- **ergodic control** for the robot to explore the car body (in the sensing stage);
-- solvers for **orienteering problems** to solve the task planning problem (to optimise order of defect to be reworked);
-- **DMP** motion to plan point-to-point motion, as well as the rework trajectories.
+Within each component, there are multiple entries representing the implementation constraint; additionally to the provided sections, consider the following legend:
+- red squares represent _inputs_ (both topics and services);
+- green circles represent _outputs_ (topics);
+- blue triangles represent _services_ that the node exports;
 
-### Low level Controller
-The low level controller is responsible to prepare different types of control strategies (impedance, admittance, position, etc...) and to execute them on the robot hardware/simulator through the XBot2 framework.
-The higher level inputs (e.g. desired position, velocity, acceleration) are provided by the motion planner.
+```{plantuml}
+:width: 700px
+@startuml
+interface "Node Interface"
+entity "Node Implementation" {
+    - /input_topic: <message_type>
+    + /output_topic: <message_type>
+    ~ /service_server: <service_type>
+}
+@enduml
+```
 
-### Estimation Algorithm
-This module embeds (and orchestrate) different functionalities:
-
-- `TactileSystem`: have a **tactile system** that can sense the car body and provide data on the defects using haptic feedback;
-- `VisionSystem`: have a **vision system** that can sense the car body and provide data on the defects using image processing;
-- `LocalisationSystem`: have a **localisation system** that can provide the positioning of different components (such as the robot, or the car body) w.r.t. a common reference frame;
-- `WeldingSystem`: component that interfaces with the production floor, retrieve the status of the weld status, and provide some *conversions* for critical areas provided by the welder.
-- provides **algorithms** that put together all these data in a coherent way that can be used by the motion planner.
-
-### Human sensing
-This module takes data of the environment and is responsible to produce data describing the human involvement with the robotic cell.
-This is the only module that can directly communicate with the low-level control for triggering reactive strategies for human collision avoidance.
+**Note:** _entities_ cam be regarded simply as ROS2 nodes that export the fixed input-output relationships, while _interfaces_ are used to express
+- an _abstract component_ whose functionality is only envisioned to make the MAGICIAN technological stack functional, but there's not (yet) a proper well-thought implementation;
+- the possibility of having different implementation to realise the same functionality.
 
 
-## Component interfaces
+### `Estimation` package
 
-Each ROS2 Node interface exposes:
-
-- the minimal set of **inputs** that are required by the given node to work (red squares);
-- the minimal set of **output topics** that the node must export (green circles);
-- the minimal set of **services** that the node must serve as server (blue triangles).
+This package specifically deals with the sensing and the perception algorithms tight to the **car body analysis**, and not with the analysis of the human present (which is instead considered in the `Human` package).
 
 ```{plantuml}
 :width: 700px
@@ -176,6 +175,12 @@ package Estimation {
 }
 @enduml
 ```
+- `CameraSensor` and `TactileSensor` represent the nodes of the corresponding sensors; they collect the data, might perform internal pre-processing, and outputs the raw data in a ROS-friendly format;
+- `Algorithm` is an interface component whose responsible to _glue together_ the various data coming from the camera/tactile sensor;
+- `Localiser` is an interface for components that can provide the relative position of pieces within the robotic cell (e.g. to position the base-link frame of the robot w.r.t. the car body). 
+  We envision multiple implementation of this interface (e.g. using motion capture system, or marker(less)-based vision system), depending on the availability of the testing facility (e.g. Trento might have a setup which is different from Genova, that is different from the one in TOFAS).
+
+### `TaskPlanning` package
 
 ```{plantuml}
 :width: 700px
@@ -197,6 +202,8 @@ package TaskPlanning {
 @enduml
 ```
 
+### `MotionPlanning` package
+
 ```{plantuml}
 :width: 700px
 @startuml
@@ -216,6 +223,8 @@ package MotionPlanning {
 }
 @enduml
 ```
+
+### `Controller` package
 
 ```{plantuml}
 :width: 700px
@@ -237,6 +246,8 @@ package Controller {
 @enduml
 ```
 
+### `Human` package
+
 ```{plantuml}
 :width: 700px
 @startuml
@@ -244,14 +255,14 @@ package Human {
 
   interface SkeletonTracker {
     .. out topics ..
-    /human/tracked_humans: human/HumanSkeletons.msg
+    + /human/tracked_humans: human/HumanSkeletons.msg
   }
 
   entity MotionForecaster {
     .. in topics ..
-    /human/tracked_humans: human/HumanSkeletons.msg
+    - /human/tracked_humans: human/HumanSkeletons.msg
     .. out topics ..
-    /human/forecaster_motion: human/MotionForecasts.msg
+    + /human/forecaster_motion: human/MotionForecasts.msg
   }
 
 }
