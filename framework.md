@@ -62,10 +62,18 @@ All these components will communicate through the [ROS2 Humble](https://index.ro
 
 # Components Functional Design and API specification
 
-## Overview
+## Preliminary definitions
+
+- ***Component***: an _entity_ that provide some specific functionalities; strictly connected to the implementation as a ROS2 node.
+- ***Module***: a group of _components_ that provide an higher level functionality.
+- ***Package***: intented as a _ROS2 package_, i.e. the software implementation.
+
+
+
+## Modules
 
 By exploiting ROS2 functionalities, the final _MAGICIAN technological stack_ will consist of a **distributed network of ROS2 nodes that work interactively**. 
-Still, we need to separate those node components in **packages** based on the node's semantic and functionality.
+Still, to reason at a higher level, we separate different node components in **modules** based on the node's semantic and functionality.
 For this reason, we identify the following areas:
 
 - `Estimation`: comprise all steps that, from the acquisition of the raw data, enable to retrieve a representation of the defect map of a single car.
@@ -76,9 +84,10 @@ For this reason, we identify the following areas:
 - `Human`: deals with the acquisition of the human pose and the consequent motion forecasting;
 - `ProcessAnalysis`, `ProcessOptimisation`, `ToolOptimisation`: contains, at different levels, all offline algorithms entitled to analyse the robot-provided data from the production floor in order to analyse and optimise the robot parameters, as well as to improve generalisation capabilities of the provided solution.
 
-Within each package we expect that multiple nodes are running.
-It also true that a single node implementation might span over multiple packages; an example is the XBot2 hardware interface that will most probably expose the `Controller` interfaces with a strict connection to the `HardwareInterface`.
-From a high level perspective, this is the main interaction between the components:
+Within each module we expect that multiple nodes are running.
+It also true that a single component might implement features of multiple modules; an example is XBot2, that will most probably expose the `Controller` interfaces with a strict connection to the `HardwareInterface`.
+
+From a high level perspective, this is the main interaction between the modules:
 
 ```{plantuml}
 :width: 700px
@@ -105,10 +114,10 @@ Database .left.> [ProcessAnalysis]
 @enduml
 ```
 
-## Packages
+## Components
 
-To properly achieve the functionalities of a _package_, multiple nodes are actually required.
-Since the final architecture will consist of a distributed set of ROS2 nodes, we enforce in this document the **minimal set of requirements** that each node shall rely on to work, and the output that they will provide.
+To properly achieve the functionalities of a _module_, multiple components are required.
+Since the final architecture will consist of a distributed set of ROS2 nodes, we enforce in this document the **minimal set of requirements** that each component shall rely on to work, and the output that they must provide to other nodes.
 
 In the following you may find:
 - _interfaces_ (letter `I` within a purple circle): represent an abstract interface with no actual implementation;
@@ -136,9 +145,9 @@ entity "Node Implementation" {
 - the possibility of having different implementation to realise the same functionality.
 
 
-### `Estimation` package
+### `Estimation` module
 
-This package specifically deals with the sensing and the perception algorithms tight to the **car body analysis**, and not with the analysis of the human present (which is instead considered in the `Human` package).
+This package specifically deals with the sensing and the perception algorithms tight to the **car body analysis**, and not with the analysis of the human present (which is instead considered in the `Human` module).
 
 ```{plantuml}
 :width: 700px
@@ -175,12 +184,12 @@ package Estimation {
 }
 @enduml
 ```
-- `CameraSensor` and `TactileSensor` represent the nodes of the corresponding sensors; they collect the data, might perform internal pre-processing, and outputs the raw data in a ROS-friendly format;
-- `Algorithm` is an interface component whose responsible to _glue together_ the various data coming from the camera/tactile sensor;
+- `CameraSensor` and `TactileSensor` represent the node components of the corresponding sensors; they collect the data, might perform internal pre-processing, and outputs the raw data in a ROS-friendly format;
+- `Algorithm` is an interface component whose responsible to _"glue together"_ the various data coming from the sensors;
 - `Localiser` is an interface for components that can provide the relative position of pieces within the robotic cell (e.g. to position the base-link frame of the robot w.r.t. the car body). 
   We envision multiple implementation of this interface (e.g. using motion capture system, or marker(less)-based vision system), depending on the availability of the testing facility (e.g. Trento might have a setup which is different from Genova, that is different from the one in TOFAS).
 
-### `TaskPlanning` package
+### `TaskPlanning` module
 
 ```{plantuml}
 :width: 700px
@@ -202,7 +211,9 @@ package TaskPlanning {
 @enduml
 ```
 
-### `MotionPlanning` package
+- `StateMachine` implements the finite-state-machine which will orchestrate, at runtime, the execution of the different nodes.
+
+### `MotionPlanning` module
 
 ```{plantuml}
 :width: 700px
@@ -224,7 +235,7 @@ package MotionPlanning {
 @enduml
 ```
 
-### `Controller` package
+### `Controller` module
 
 ```{plantuml}
 :width: 700px
@@ -240,13 +251,32 @@ package Controller {
   entity ImpedanceController {
   }
 
-  CartesianController --|> ImpedanceController 
+  CartesianController <|-- ImpedanceController 
 
 }
 @enduml
 ```
 
-### `Human` package
+### `HardwareInterface` module
+
+```{plantuml}
+:width: 700px
+@startuml
+package HardwareInterface {
+
+  interface HwInterface {
+    .. out topics ..
+    + /robot/joint_states: sensor_msgs/msg/JointState
+  }
+
+  HwInterface <|-- Simulator
+  HwInterface <|-- RealHardware
+
+}
+@enduml
+```
+
+### `Human` module
 
 ```{plantuml}
 :width: 700px
@@ -262,7 +292,7 @@ package Human {
     .. in topics ..
     - /human/tracked_humans: human/HumanSkeletons.msg
     .. out topics ..
-    + /human/forecaster_motion: human/MotionForecasts.msg
+    + /human/motion_forecast: human/MotionForecasts.msg
   }
 
 }
@@ -282,27 +312,23 @@ All messages shall be documented as reported in the [`README`](https://github.co
 For a simple example on how to create custom `msg` and `srv` files, please refer to [the official tutorial](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Custom-ROS2-Interfaces.html) on the ROS2 documentation.
 
 ### Topics
-- `/camera/result` (type: `msg/camera/Scan.msg`): provides the prediction on of the defects from a single image;
-- `/tactile/result` (type **`TBD`**);
-- `/car/current_estimation_state` (type `msg/CarEstimate.msg`): provides the current inspection state of the car body (e.g. the map of the found defects, area that has been covered, variance of the estimation...);
+- `/camera/result` (type: `magician_msg/camera/Result.msg`): provides the identified defects from a image of the vision-based system;
+- `/tactile/result` (type: `magician_msg/tactile/Result.msg`): provides the outcome of the defect analysis through tactile sensing; 
+- `/estimator/state` (type `magician_msgs/estimator/EstimationState.msg`): provides the current inspection state of the car body (e.g. the map of the found defects, area that has been covered, variance of the estimation...);
 - `/car/position` (type: `geometry_msgs/PoseStamped.msg`): position of the car body w.r.t. a common reference frame;
-- `/robot/state` (type: `msg/RobotState.msg`): provides the current working state of the robot (e.g. sensing, reworking, standstill...);
-- `/robot/position` (type: `geometry_msgs/PoseStamped.msg`): position of the robot base w.r.t. a common reference frame;
-- `/robot/pos_setpoint` (type: `geometry_msgs/Pose.msg`): currently desired end-effector position;
-- `/robot/vel_setpoint` (type: `geometry_msgs/Twist.msg`): currently desired end-effector velocity;
-- `/robot/acc_setpoint` (type: `geometry_msgs/Twist.msg`): currently desired end-effector acceleration;
-- `/human/predicted_motion` (type **`TBD`**);
+- `/robot/position` (type: `geometry_msgs/PoseStamped.msg`): position of the robot base link w.r.t. a common reference frame;
+- `/controller/position` (type: `geometry_msgs/PoseStamped.msg`): desired end-effector position;
+- `/controller/velocity` (type: `geometry_msgs/TwistStamped.msg`): desired end-effector velocity;
+- `/human/tracked_humans` (type: `magician_msgs/human/HumanSkeletons.msg`): list of all the skeleton data tracked;
+- `/human/motion_forecast` (type: `magician_msgs/human/MotionForecast.msg`): reports the predicted motion of the humans;
 
 
 ### Services
 
-- `/car/get_defects` (type `srv/GetDefects.srv`): retrieves the currently sensed defects;
-- `/robot/set_planning_algorithm` (type **`TBD`**);
-- `/robot/task_planning/orienteering` (type `srv/task_planning/Orienteering.srv`): solves the deterministic orienteering problem;
-- `/robot/task_planning/ptp_time_estimator` (type `srv/task_planning/PtpTimeEstimator.srv`): builds an estimate of the time required to carry out a point-to-point motion;
-- `/robot/homing` (type `std_msgs/Trigger.msg`);
-- `/robot/stop` (type `std_msgs/Trigger.msg`);
-- `/robot/safety_stop` (type `std_msgs/Trigger.msg`);
+- `/estimator/get_defects` (type `magician_msgs/estimator/GetDefects.srv`): retrieves the currently sensed defects;
+- `/task_planner/orienteering` (type `magician_msgs/task_planning/Orienteeering.srv`): solves the standard orienteering problem;
+- `/motion_planner/dmp/time_estimator` (type `magician_msgs/motion_planner/dmp/TimeEstimate.srv`): estimates the time to move within 2 (or multiple) points using DMPs;
+- `/motion_planner/dmp/execute` (type `magician_msgs/motion_planner/dmp/Dmp.srv`): executes a DMP-based motion;
 
 
 ## Extra features
