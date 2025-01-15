@@ -4,48 +4,26 @@
 
 As proposed by prof. Luigi Palopoli in the integration meeting (October the 15th, 2024) in Heraklion, Crete, the software infrastructure will mainly encompass 3 components, as highlighted in the following diagram.
 
-```{mermaid}
-graph TD
-    ROS1[ROS2] --> XBOT[XBot2]
-    RT1[RT application] -->XBOT
-    XBOT --> LNX1[Linux + Xenomai]
+```{plantuml}
+:width: 700px
+@startuml
+package "Robot Control" {
+  [ROS2] -down-> [XBot2]
+  [RT Application] -down-> [XBot2]
+  [XBot2] -down-> [Linux + Xenomai]
+}
 
-    RT2[RT application]
-    ROS2[ROS2]
-    LNX2[Linux + RT patch]
-    RT2 --> LNX2
-    ROS2 --> LNX2
+package "RT Applications" {
+  [RT Application ] -down-> [Linux + RT Patch]
+  [ROS2 ] -down-> [Linux + RT Patch]
+}
 
-
-    ROS3[ROS2]
-    DB[Database]
-    APP[Non-RT applications]
-
-    ROS3 --> DB
-    DB <--> APP
-    %% LNX3 --> APP
-    %% ROS2 <--> ROS1
-    %% ROS2 --> ROS3
-
-    subgraph "Non-RT Applications"
-        ROS3
-        DB
-        APP
-        %% LNX3
-    end
-
-    subgraph "RT Applications"
-        ROS2
-        RT2
-        LNX2
-    end
-
-    subgraph "Robot Control"
-        ROS1
-        XBOT
-        RT1
-        LNX1
-    end
+package "Non-RT Applications" {
+  database "Database"
+  [ ROS2] -down-> Database
+  Database <-down-> [Non-RT Application]
+}
+@enduml
 ```
 
 The low-level control of the robot will be based on the RT framework developed by IIT, [XBot2](https://advrhumanoids.github.io/xbot2/master/index.html).
@@ -66,7 +44,7 @@ All these components will communicate through the [ROS2 Humble](https://index.ro
 
 - ***Component***: an _entity_ that provide some specific functionalities; strictly connected to the implementation as a ROS2 node.
 - ***Module***: a group of _components_ that provide an higher level functionality.
-- ***Package***: intented as a _ROS2 package_, i.e. the software implementation.
+- ***Package***: intented as a _ROS2 package_, i.e. a software repositories containing source code for 1 or multiple _components_.
 
 
 
@@ -82,10 +60,10 @@ For this reason, we identify the following areas:
 - `Controller`: comprises all low-level control utilities to interact with the robot;
 - `HardwareInterface`: hardware abstraction layer;
 - `Human`: deals with the acquisition of the human pose and the consequent motion forecasting;
-- `ProcessAnalysis`, `ProcessOptimisation`, `ToolOptimisation`: contains, at different levels, all offline algorithms entitled to analyse the robot-provided data from the production floor in order to analyse and optimise the robot parameters, as well as to improve generalisation capabilities of the provided solution.
+- `OfflineOptimisation`: contains all offline algorithms entitled to analyse the robot-provided data from the production floor in order to analyse and optimise the robot parameters, as well as to improve generalisation capabilities of the provided solution.
 
-Within each module we expect that multiple nodes are running.
-It also true that a single component might implement features of multiple modules; an example is XBot2, that will most probably expose the `Controller` interfaces with a strict connection to the `HardwareInterface`.
+Within each module, we expect multiple nodes (components) to exists and run.
+It also true that a single component might implement features of multiple modules; an example is XBot2, that will most probably expose the `Controller` interfaces with a tight connection to the `HardwareInterface`.
 
 From a high level perspective, this is the main interaction between the modules:
 
@@ -105,14 +83,15 @@ database "Database"
 [MotionPlanning] .left.> Database
 [Controller] ..> Database
 
-Database .left.> [ProcessAnalysis]
-[ProcessAnalysis] -down-> [ProcessOptimisation]
-[ProcessOptimisation] -down-> [ToolOptimisation]
-[ToolOptimisation] -down-> "Set node parameters"
+Database .left.> [OfflineOptimisation]
+[OfflineOptimisation] -down-> "Set node parameters"
 
 
 @enduml
 ```
+
+**Note:** To ease development, we don't enforce all components of a module to be implemented within the same package.
+Rather, each partner is welcome to create, maintain, and document its own package, and specify there each executable node which interfaces it specifically implements.
 
 ## Components
 
@@ -176,6 +155,9 @@ package Estimation {
     + /tactile/result: tactile/Result.msg
   }
 
+  entity WeldingInformation {
+  }
+
   interface Localiser {
     .. out topics ..
     + /<obj>/position: geometry_msgs/PoseStamped.msg
@@ -211,7 +193,7 @@ package TaskPlanning {
 @enduml
 ```
 
-- `StateMachine` implements the finite-state-machine which will orchestrate, at runtime, the execution of the different nodes.
+- `StateMachine` implements the finite-state machine which will orchestrate, at runtime, the execution of the distributed network of nodes.
 
 ### `MotionPlanning` module
 
@@ -299,6 +281,19 @@ package Human {
 @enduml
 ```
 
+### `OfflineOptimisation` module
+
+```{plantuml}
+:width: 700px
+@startuml
+package OfflineOptimisation {
+  entity ProcessAnalysis 
+  entity ProcessOptimisation
+  entity ToolOptimisation
+}
+@enduml
+```
+
 ## API Definition
 
 The previous section outlined the interfaces that each node must implement to work in the system.
@@ -335,8 +330,10 @@ For a simple example on how to create custom `msg` and `srv` files, please refer
 
 ### Managed Nodes
 
-At runtime, we expect that all aforementioned subcomponents (except `TaskManager`) will be [managed ROS2 nodes](http://design.ros2.org/articles/node_lifecycle.html).
-According to such standard, each node internally have a finite state machine of 5 states: `unloaded`, `unconfigured`, `inactive`, `active`, `finalized`.
-The following diagram, extracted from the ROS2 design documentation, shows the lifecycle of a node:
+To facilitate the overall orchestration of the distributed network of nodes, we might rely on [managed ROS2 nodes](http://design.ros2.org/articles/node_lifecycle.html).
+According to such standard, each node internally have a finite state machine of 4 states: `unconfigured`, `inactive`, `active`, `finalized`.
+The following diagram (extracted from the ROS2 design documentation) shows the lifecycle of a node, describing all possible transitions:
 
 ![](http://design.ros2.org/img/node_lifecycle/life_cycle_sm.png)
+
+By exploiting this finite-state machine-like behavior for each node, it will make easier to enable-disable particular functionalities at runtime.
