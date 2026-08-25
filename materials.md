@@ -4,6 +4,8 @@
 
 The following table contains all components for the first version of the defect acquisition system developed by the FORTH partner.
 
+
+<!-- 
 Last update: November 2024.
 
 | Item | Description | Quantity | Links |
@@ -17,6 +19,22 @@ Last update: November 2024.
 | Arduino Ethernet shield | | 1 | [Greece](https://electron-kriti.gr/el/fakoi/w-5100), [Amazon](https://amzn.eu/d/iXizI9B) |
 | VL53L0X | Laser Range Sensors | 3 | [Amazon](https://amzn.eu/d/fJD8Z1o) |
 | RPI 16mm | type C mount 16mm lens | 1 | [Greece](https://nettop.gr/index.php/raspberry-pi/camera/16mm-telephoto-lens.html), [Italy](https://it.farnell.com/3381606) |
+-->
+
+
+
+Last update: August 2026.
+
+| Item | Description | Quantity | Links |
+| ---: | :---------- | :------- | ----- |
+| Sony XCG-CP510 | Gigabit Ethernet camera| 1 | [Italy](https://www.tecnosens.it/telecamere-industriali/xcg-cp510) |
+| RPI 16mm | type C mount 16mm lens | 1 | [Greece](https://nettop.gr/index.php/raspberry-pi/camera/16mm-telephoto-lens.html), [Italy](https://it.farnell.com/3381606) |
+| | A4 polarizer sheets | 2 | [Amazon](https://amzn.eu/d/eoilMHq) |
+| HP Laptop Charger | TBA exact model | 1 |  |
+| W.W 3000K 3-3.7V | 2W 1000mA 60x8mm LED COBs | 18 | [Global](https://www.aliexpress.com/item/1000006624305.html) | 
+| VL53L5CX | Laser Range Sensors | 3 | [Global](https://www.aliexpress.com/item/1000006624305.html) |
+| Magician Chassis | CAD Assembly | 1 |  |
+
 
 
 In addition to this material, it is required to have breadboards, cables and resistor to wire all the setup.
