@@ -33,7 +33,8 @@ Last update: August 2026.
 | HP Laptop Charger | TBA exact model | 1 |  |
 | W.W 3000K 3-3.7V | 2W 1000mA 60x8mm LED COBs | 18 | [Global](https://www.aliexpress.com/item/1000006624305.html) | 
 | VL53L5CX | Laser Range Sensors | 3 | [Global](https://www.aliexpress.com/item/1000006624305.html) |
-| Magician Chassis | CAD Assembly | 1 |  |
+| Magician Chassis | AutoCAD Assembly | 1 |  |
+| Magician PCB  | KiCAD Assembly | 1 | See parts below |
 
 ### PCB Bill of Materials (MagicianCam4)
 
