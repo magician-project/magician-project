@@ -32,7 +32,7 @@ Last update: August 2026.
 | Polarizer sheets | A4 size | 2 | [Amazon](https://amzn.eu/d/eoilMHq) |
 | 150W HP Laptop Charger | Part No. 917649-850 | 1 | [Global](https://www.aliexpress.com/item/1005008621166736.html) |
 | W.W 3000K 3-3.7V | 2W 1000mA 60x8mm LED COBs | 24 | [Global](https://www.aliexpress.com/item/1000006624305.html) | 
-| VL53L5CX | Laser Range Sensors | 3 | [Global](https://www.aliexpress.com/item/1000006624305.html) |
+| VL53L5CX | Laser Range Sensors | 3 | [Global](https://www.aliexpress.com/item/1005008784510587.html) |
 | Magician Chassis | AutoCAD Assembly | 1 |  |
 | Magician PCB  | KiCAD Assembly | 1 | [Kicad Source](https://github.com/magician-project/magician_main_board/tree/main/src/kicad/v4) and parts below |
 
